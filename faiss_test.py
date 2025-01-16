@@ -1,6 +1,9 @@
 import pandas as pd
-from sentence_transformers import SentenceTransformer
 import faiss
+from langchain.vectorstores import FAISS
+from langchain.embeddings import OpenAIEmbeddings
+import os
+from constants import OPEN_API_KEY
 
 # Загрузка данных с гибкими параметрами
 def load_data(file_path):
@@ -19,33 +22,15 @@ if data is not None:
     # Удаление пустых значений в колонке content
     texts = data['content'].dropna().tolist()
 
-    # Инициализация модели SentenceTransformer
-    model = SentenceTransformer('all-MiniLM-L6-v2')
+    # Инициализация OpenAI эмбеддингов
+    embeddings = OpenAIEmbeddings(openai_api_key=OPEN_API_KEY)
 
-    # Создание эмбеддингов для текстов
-    embeddings = model.encode(texts, convert_to_tensor=False, show_progress_bar=True)
+    # Создание FAISS индекса через LangChain
+    faiss_index = FAISS.from_texts(texts, embeddings)
 
-    # Создание Faiss индекса
-    dimension = embeddings.shape[1]
-    faiss_index = faiss.IndexFlatL2(dimension)
-
-    # Добавление эмбеддингов в индекс
-    faiss_index.add(embeddings)
-
-    import pickle
-
-    # Сохранение индекса в файл .faiss
-    faiss.write_index(faiss_index, "index.faiss")
-    print("Faiss индекс успешно создан и сохранен в 'faiss_knowledge_base.faiss'.")
-
-    # Сохранение эмбеддингов и других данных в файл .pkl
-    with open("index.pkl", "wb") as pkl_file:
-        pickle.dump({"embeddings": embeddings, "texts": texts}, pkl_file)
-    print("Данные эмбеддингов успешно сохранены в 'embeddings_data.pkl'.")
-
-    print("Faiss индекс успешно создан и сохранен в 'faiss_knowledge_base.index'.")
+    # Сохранение индекса локально
+    faiss_dir = 'faiss_indexes'
+    faiss_index.save_local(faiss_dir)
+    print(f"FAISS индекс успешно создан и сохранен в директории '{faiss_dir}'.")
 else:
     print("Не удалось загрузить данные.")
-
-
-

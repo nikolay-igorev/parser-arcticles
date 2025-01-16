@@ -4,11 +4,11 @@ from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
 from openai import AsyncOpenAI
 import os
-
-OPEN_API_KEY = '<YOUR_API_KEY>'
+from constants import OPEN_API_KEY
 
 class Faiss:
     loaded_vectorstore: FAISS
+    chatgpt_client: AsyncOpenAI
     def __init__(self, OPENAI_KEY: str, chatgpt_client):
         embeddings = OpenAIEmbeddings(api_key=OPENAI_KEY, async_client=AsyncOpenAI,)
         faiss_dir = 'faiss_indexes'
@@ -29,16 +29,22 @@ class Faiss:
         messages = [
             {"role": "system", "content": f"Контекст для релевантного ответа:\n{context}"},
             {"role": "user", "content": f"""
-        Ответь :\n{text}
+        Ответь :\n{topic}
     """}
         ]
-        return await self.chatgpt_client.answer(self.loaded_vectorstore.embeddings.api_key, messages)
+        return (await self.chatgpt_client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=messages,
+            max_tokens=100,
+            temperature=0.7,
+            stop=["\n"]
+        )).choices[0].message.content
 
 def main():
     chatgpt_client = AsyncOpenAI(api_key=OPEN_API_KEY)
     f = Faiss(OPEN_API_KEY, chatgpt_client)
 
-    topic = "Help me"
+    topic = "О чес ты можешь мне рассказать?"
     response = asyncio.run(f.chatbot_chat(topic))
     print(response)
 

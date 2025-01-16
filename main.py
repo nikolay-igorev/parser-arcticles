@@ -1,6 +1,4 @@
-import codecs
 import json
-
 from bs4 import BeautifulSoup
 import aiohttp
 import asyncio
